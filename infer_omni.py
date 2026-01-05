@@ -6,12 +6,16 @@ Usage:
     python infer_omni.py video.mp4 "What happens in this video?"
     python infer_omni.py video.mp4  # Uses default gaming clip prompt
     python infer_omni.py video.mp4 --server 192.168.1.100:8901
+    python infer_omni.py video.mp4 --fps 4  # Higher frame rate
 """
 
 import argparse
 import base64
+import os
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 from openai import OpenAI
@@ -35,7 +39,33 @@ def strip_thinking(text: str) -> str:
     return text.strip()
 
 
-def analyze_clip(video_path: Path, prompt: str, server: str) -> str:
+def preprocess_video(video_path: Path, max_height: int = 1080, fps: float = 3.0) -> bytes:
+    """Resize video to max_height and resample to target fps using ffmpeg."""
+    with tempfile.NamedTemporaryFile(suffix='.mp4', delete=False) as tmp:
+        tmp_path = tmp.name
+
+    cmd = [
+        'ffmpeg', '-y', '-i', str(video_path),
+        '-vf', f'scale=-2:{max_height}:flags=lanczos,fps={fps}',
+        '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+        '-an',  # Remove audio
+        tmp_path
+    ]
+
+    print(f"Preprocessing: {max_height}p @ {fps} fps...", file=sys.stderr)
+    result = subprocess.run(cmd, capture_output=True)
+    if result.returncode != 0:
+        print(f"Warning: ffmpeg failed, using original video", file=sys.stderr)
+        with open(video_path, 'rb') as f:
+            return f.read()
+
+    with open(tmp_path, 'rb') as f:
+        data = f.read()
+    os.unlink(tmp_path)
+    return data
+
+
+def analyze_clip(video_path: Path, prompt: str, server: str, fps: float) -> str:
     """Send video to Qwen3-VL server for analysis."""
     client = OpenAI(
         api_key="not-used",
@@ -43,12 +73,12 @@ def analyze_clip(video_path: Path, prompt: str, server: str) -> str:
     )
 
     print(f"Loading video: {video_path}", file=sys.stderr)
-    with open(video_path, "rb") as f:
-        video_b64 = base64.b64encode(f.read()).decode()
+    video_data = preprocess_video(video_path, max_height=1080, fps=fps)
+    video_b64 = base64.b64encode(video_data).decode()
 
     print(f"Sending to server ({server})...", file=sys.stderr)
     response = client.chat.completions.create(
-        model="Qwen/Qwen3-VL-4B-Thinking",
+        model="Qwen/Qwen3-VL-8B-Thinking-FP8",
         messages=[{
             "role": "user",
             "content": [
@@ -80,6 +110,12 @@ def main():
         default="localhost:8901",
         help="Server address (default: localhost:8901)",
     )
+    parser.add_argument(
+        "--fps",
+        type=float,
+        default=3.0,
+        help="Frames per second to sample (default: 3.0)",
+    )
 
     args = parser.parse_args()
 
@@ -87,7 +123,7 @@ def main():
         print(f"Error: Video not found: {args.video}", file=sys.stderr)
         sys.exit(1)
 
-    result = analyze_clip(args.video, args.prompt, args.server)
+    result = analyze_clip(args.video, args.prompt, args.server, args.fps)
     print(result)
 
 

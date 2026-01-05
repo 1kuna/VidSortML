@@ -6,7 +6,7 @@
 #   2. Open Ubuntu terminal and run: ./start_server.sh
 
 VENV_DIR="$HOME/vllm-omni"
-MODEL="Qwen/Qwen3-VL-4B-Thinking"
+MODEL="Qwen/Qwen3-VL-8B-Thinking-FP8"
 PORT=8901
 
 # Create venv if needed
