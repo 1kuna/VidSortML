@@ -20,35 +20,93 @@ from pathlib import Path
 
 from openai import OpenAI
 
-DEFAULT_PROMPT = """Count the kills made by the player in this first-person Valorant clip.
+DEFAULT_PROMPT = """Count the player's kills in this first-person Valorant clip.
 
-The kill feed is in the top-right corner. Format: [Killer] [weapon icon] [Victim]
-- Name on LEFT of icon = killer
-- Name on RIGHT of icon = victim
+=== KILL FEED BASICS ===
+Location: Top-right corner of screen
+Format: [KILLER NAME] [weapon/ability icon] [VICTIM NAME]
+- Name on LEFT of icon = the killer (who got the kill)
+- Name on RIGHT of icon = the victim (who died)
 
-IMPORTANT: Multiple kill feed entries can be STACKED vertically on screen at the same time.
-When you see 3 entries stacked, that's 3 separate kills - count each one individually.
+=== CRITICAL: FRAME PERSISTENCE vs STACKED ENTRIES ===
 
-First, identify which name is the player by watching when YOU (first-person) kill someone.
-Then list EVERY kill feed entry where that name is the killer, including all stacked entries.
+FRAME PERSISTENCE (same kill shown multiple times):
+- A kill feed entry stays visible for several seconds before fading
+- If you see "PlayerA killed VictimX" in frame 5, 6, 7, 8... that's still ONE kill
+- The entry is just persisting on screen across multiple frames
+- DO NOT count the same entry multiple times
 
-Output format:
-PLAYER NAME: [name]
+STACKED ENTRIES (multiple kills at once):
+- When kills happen rapidly, multiple entries stack VERTICALLY in the same frame
+- If ONE frame shows 3 rows stacked like:
+    PlayerA killed Victim1
+    PlayerA killed Victim2
+    PlayerA killed Victim3
+- That's THREE separate kills - count each row as one kill
+- Each row has a DIFFERENT victim name
+
+=== HOW TO COUNT CORRECTLY ===
+
+Step 1 - IDENTIFY YOUR NAME:
+- You are the first-person view (the one holding the gun)
+- When YOU shoot and kill someone, watch the kill feed
+- A NEW entry appears with YOUR name on the LEFT
+- That name (e.g., "Me" or your username) is your player name
+
+Step 2 - COUNT UNIQUE VICTIMS:
+- Find all kill feed entries where YOUR name is on the left
+- Each DIFFERENT victim name = one kill
+- In Valorant, you cannot kill the same person twice per round
+- So count unique victim names killed by you
+
+Step 3 - CHECK FOR STACKED RAPID KILLS:
+- Look for frames where multiple entries are stacked
+- If you got a triple kill, you'll see 3 entries stacked with YOUR name on the left
+- Count each stacked entry as a separate kill
+
+=== OUTPUT FORMAT ===
+PLAYER NAME: [your name from kill feed]
 KILLS:
-1. [victim name]
-2. [victim name]
+1. [first victim name]
+2. [second victim name]
+3. [third victim name]
 ...
 TOTAL: [number]"""
 
 
 def strip_thinking(text: str) -> str:
     """Remove thinking blocks from model output."""
-    # Handle <think>...</think>
+    original = text
+
+    # Method 1: Handle proper <think>...</think> tags
     text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
-    # Handle when template auto-adds <think> (output only has </think>)
+
+    # Method 2: Handle missing opening tag (model outputs thinking then </think>)
     if '</think>' in text:
         text = text.split('</think>')[-1]
-    return text.strip()
+
+    # Method 3: Handle other thinking markers
+    # Sometimes models use different formats
+    text = re.sub(r'<\|think\|>.*?<\|/think\|>', '', text, flags=re.DOTALL)
+
+    # Method 4: If output starts with common reasoning phrases and has a clear answer at end,
+    # try to extract just the answer (look for the structured output format)
+    stripped = text.strip()
+
+    # If we still have a very long response that looks like reasoning,
+    # try to find the structured output at the end
+    if len(stripped) > 500 and 'PLAYER NAME:' in stripped:
+        # Find the last occurrence of the output format
+        idx = stripped.rfind('PLAYER NAME:')
+        if idx != -1:
+            stripped = stripped[idx:]
+
+    # If output is just a number (simple case), return it
+    if stripped.isdigit():
+        return stripped
+
+    # Clean up any remaining whitespace
+    return stripped.strip()
 
 
 def preprocess_video(video_path: Path, max_height: int = 720, fps: float = 6.0, debug: bool = False) -> bytes:
