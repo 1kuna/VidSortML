@@ -26,8 +26,11 @@ The kill feed is in the top-right corner. Format: [Killer] [weapon icon] [Victim
 - Name on LEFT of icon = killer
 - Name on RIGHT of icon = victim
 
+IMPORTANT: Multiple kill feed entries can be STACKED vertically on screen at the same time.
+When you see 3 entries stacked, that's 3 separate kills - count each one individually.
+
 First, identify which name is the player by watching when YOU (first-person) kill someone.
-Then list every kill feed entry where that name is the killer.
+Then list EVERY kill feed entry where that name is the killer, including all stacked entries.
 
 Output format:
 PLAYER NAME: [name]
