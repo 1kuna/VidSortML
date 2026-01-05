@@ -20,19 +20,22 @@ from pathlib import Path
 
 from openai import OpenAI
 
-DEFAULT_PROMPT = """Count the kills made by the player ("Me") in this first-person Valorant clip.
+DEFAULT_PROMPT = """Count the kills made by the player in this first-person Valorant clip.
 
-CRITICAL - How to read the kill feed (top-right corner):
-- Format: [Killer] [weapon/ability icon] [Victim]
-- The name on the LEFT of the weapon icon is the KILLER
-- The name on the RIGHT of the weapon icon is the VICTIM (the one who died)
-- "Me" = the player (you're counting kills FOR "Me")
-- Only count kills where "Me" appears on the LEFT side of the weapon icon
+You are watching from the player's perspective (first-person view). Count kills that THIS player makes.
+
+How to identify a player kill:
+1. The player shoots/attacks an enemy and they die
+2. A red "X" hit marker or elimination indicator appears on screen
+3. "+X" score popup or "ELIMINATED" text appears
+4. In the kill feed (top-right): the PLAYER'S name appears on the LEFT side of the weapon icon
+   - Format: [Killer] [weapon icon] [Victim]
+   - Left of weapon = killer, Right of weapon = victim
 
 DO NOT count:
-- Deaths (where "Me" is on the right side)
-- Teammate kills (other names on the left)
-- The round score at the top (e.g., 9-8) - this is rounds won, not kills
+- Teammate kills (kills made by other players on your team)
+- Deaths (when the player dies)
+- The round score at top (e.g., 9-8) - this is rounds won, not kills
 
 After careful analysis, output ONLY a single number (0, 1, 2, 3, etc). Nothing else."""
 
