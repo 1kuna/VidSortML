@@ -24,17 +24,17 @@ DEFAULT_PROMPT = """Count the kills made by the player in this first-person Valo
 
 You are watching from the player's perspective (first-person view). Count kills that THIS player makes.
 
-How to identify a player kill:
-1. The player shoots/attacks an enemy and they die
-2. A red "X" hit marker or elimination indicator appears on screen
-3. "+X" score popup or "ELIMINATED" text appears
-4. In the kill feed (top-right): the PLAYER'S name appears on the LEFT side of the weapon icon
-   - Format: [Killer] [weapon icon] [Victim]
-   - Left of weapon = killer, Right of weapon = victim
+How to identify a player kill in Valorant:
+1. The player shoots an enemy and their body falls
+2. A kill entry appears in the kill feed (top-right corner)
+3. The kill feed format: [Killer] [weapon/ability icon] [Victim]
+   - Name on LEFT of the icon = the killer
+   - Name on RIGHT of the icon = the victim who died
+   - Only count when the PLAYER'S name is on the LEFT
 
 DO NOT count:
-- Teammate kills (kills made by other players on your team)
-- Deaths (when the player dies)
+- Teammate kills (other names on the left side of kill feed)
+- Deaths (when the player's name is on the right side)
 - The round score at top (e.g., 9-8) - this is rounds won, not kills
 
 After careful analysis, output ONLY a single number (0, 1, 2, 3, etc). Nothing else."""
