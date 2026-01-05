@@ -16,18 +16,9 @@ from pathlib import Path
 
 from openai import OpenAI
 
-DEFAULT_PROMPT = """Watch this gaming clip and categorize it with a SHORT label.
+DEFAULT_PROMPT = """Count the kills made by the player (first-person perspective). Only count kills the player gets, not other players' kills shown in the kill feed.
 
-Output ONLY one of these formats (nothing else):
-- "X eliminations" (where X is the number of kills/eliminations seen)
-- "comedy" (if something funny happens)
-- "skilled play" (impressive gameplay)
-- "fail" (embarrassing mistake)
-- "other"
-
-Examples: "3 eliminations", "comedy", "no eliminations", "skilled play"
-
-Your response must be ONLY the category label, no explanation."""
+Output ONLY a single number (0, 1, 2, 3, etc). Nothing else."""
 
 
 def strip_thinking(text: str) -> str:
