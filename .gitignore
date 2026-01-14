@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.env
+
+# macOS
+.DS_Store
+
+# Temporary/working files
+thinking.stage*.txt
